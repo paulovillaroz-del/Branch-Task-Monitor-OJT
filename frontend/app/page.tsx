@@ -1,79 +1,100 @@
 'use client';
+
 import { useState, useEffect } from 'react';
+import { Sidebar } from "@/components/dashboard/sidebar"
+import { Header } from "@/components/dashboard/header"
+import { StatsCards } from "@/components/dashboard/stats-cards"
+import { ProjectAnalytics } from "@/components/dashboard/project-analytics"
+import { Reminders } from "@/components/dashboard/reminders"
+import { ProjectList } from "@/components/dashboard/project-list"
+import { TeamCollaboration } from "@/components/dashboard/team-collaboration"
+import { ProjectProgress } from "@/components/dashboard/project-progress"
+import { MobileAppCard } from "@/components/dashboard/mobile-app-card"
+import { TimeTracker } from "@/components/dashboard/time-tracker"
+import { Button } from "@/components/ui/button"
+import { AddProjectDialog } from "@/components/dashboard/add-project-dialog"
 
-export default function TaskMonitor() {
+export default function DashboardPage() {
   const [tasks, setTasks] = useState([]);
-  const [title, setTitle] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // 1. Fetch function to see the "Visibility" of tasks [cite: 25]
-  const fetchTasks = async () => {
-    try {
-      const res = await fetch('http://localhost:8080/api/tasks');
-      const data = await res.json();
-      setTasks(data || []);
-    } catch (err) {
-      console.error("Backend not running:", err);
-    }
-  };
-
-  useEffect(() => { fetchTasks(); }, []);
-
-  // 2. Function for the "Task Entry" module 
-  const addTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title) return;
-
-    await fetch('http://localhost:8080/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description: '', status: 'todo' }),
-    });
-    
-    setTitle(''); // Clear input
-    fetchTasks(); // Refresh "Visibility" [cite: 25]
-  };
+  useEffect(() => {
+    fetch('http://localhost:8080/tasks')
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`Backend responded with ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        setTasks(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Fetch failed:", err);
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
 
   return (
-    <main className="max-w-4xl mx-auto p-8 font-sans">
-      <header className="mb-10 text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">Branch Task Monitor</h1>
-        <p className="text-gray-600 italic">Centralized system for small business operations [cite: 22, 36]</p>
-      </header>
+    <div className="flex min-h-screen bg-background">
+      <div className="hidden lg:block">
+        <Sidebar />
+      </div>
 
-      {/* Task Creation Module  */}
-      <section className="bg-white p-6 rounded-xl shadow-md mb-8 border border-gray-100">
-        <form onSubmit={addTask} className="flex gap-4">
-          <input 
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="What needs to be done today?"
-            className="flex-1 border-2 border-gray-200 p-3 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-          />
-          <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-lg active:scale-95">
-            Add Task
-          </button>
-        </form>
-      </section>
+      <main className="flex-1 p-3 md:p-4 lg:p-5 lg:ml-64">
+        <Header
+          title="Dashboard"
+          description="Plan, prioritize, and accomplish your tasks with ease."
+          actions={
+            <>
+              <AddProjectDialog />
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto h-9 text-sm transition-all duration-300 hover:shadow-md hover:scale-105 bg-transparent"
+              >
+                Import Data
+              </Button>
+            </>
+          }
+        />
 
-      {/* Task Status Tracking Module  */}
-      <div className="grid gap-4">
-        <h2 className="text-xl font-semibold text-gray-700 mb-2">Active Branch Tasks</h2>
-        {tasks.length === 0 ? (
-          <p className="text-gray-400 text-center py-10">No tasks monitored yet.</p>
-        ) : (
-          tasks.map((task: any) => (
-            <div key={task.id} className="bg-white p-5 rounded-lg border-l-8 border-yellow-400 shadow-sm flex justify-between items-center transition-transform hover:scale-[1.01]">
-              <div>
-                <h3 className="text-lg font-bold text-gray-800">{task.title}</h3>
-                <p className="text-sm text-gray-500 uppercase tracking-widest font-bold">Status: {task.status}</p>
+        {loading && <p className="text-center mt-8 text-muted-foreground">Loading real tasks from database...</p>}
+
+        {error && (
+          <p className="text-red-500 text-center mt-8">
+            Error loading tasks: {error} (check if backend is running on port 8080)
+          </p>
+        )}
+
+        {!loading && !error && (
+          <div className="mt-4 md:mt-5 space-y-3 md:space-y-4">
+            {/* Show real number of tasks */}
+            <StatsCards taskCount={tasks.length} />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+              <div className="lg:col-span-2 space-y-3 md:space-y-4">
+                <ProjectAnalytics />
+                <TeamCollaboration />
               </div>
-              <div className="flex gap-2">
-                 <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold">IN PROGRESS</span>
+
+              <div className="space-y-3 md:space-y-4">
+                <Reminders />
+                <ProjectProgress />
               </div>
             </div>
-          ))
+
+            {/* Pass real tasks to ProjectList */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+              <ProjectList tasks={tasks} />
+              <MobileAppCard />
+              <TimeTracker />
+            </div>
+          </div>
         )}
-      </div>
-    </main>
-  );
+      </main>
+    </div>
+  )
 }
