@@ -1,83 +1,96 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Plus } from "lucide-react"
-
-const members = [
-  {
-    name: "Alexandra Deff",
-    task: "Github Project Repository",
-    status: "Completed",
-    statusColor: "bg-emerald-100 text-emerald-700",
-    avatar: "AD",
-    avatarImage: "/avatars/avatar-1.jpg",
-  },
-  {
-    name: "Edwin Adenike",
-    task: "Integrate User Authentication System",
-    status: "In Progress",
-    statusColor: "bg-amber-100 text-amber-700",
-    avatar: "EA",
-    avatarImage: "/avatars/avatar-2.jpg",
-  },
-  {
-    name: "Isaac Oluwatemilorun",
-    task: "Develop Search and Filter Functionality",
-    status: "Pending",
-    statusColor: "bg-rose-100 text-rose-700",
-    avatar: "IO",
-    avatarImage: "/avatars/avatar-3.jpg",
-  },
-  {
-    name: "David Oshodi",
-    task: "Responsive Layout for Homepage",
-    status: "In Progress",
-    statusColor: "bg-amber-100 text-amber-700",
-    avatar: "DO",
-    avatarImage: "/avatars/avatar-4.jpg",
-  },
-]
+import { Briefcase, Mail, Phone, Users } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { StaffTaskView } from "./staff-task-view"
 
 export function TeamCollaboration() {
+  const [staffs, setStaffs] = useState<any[]>([])
+  const [selectedStaff, setSelectedStaff] = useState<{email: string, name: string} | null>(null)
+  const [isViewOpen, setIsViewOpen] = useState(false)
+
+  // Fetch real staff data from your Go Backend
+  useEffect(() => {
+    fetch("http://localhost:8080/users?role=user")
+      .then(res => res.json())
+      .then(data => setStaffs(data))
+      .catch(err => console.error("Error fetching staff:", err))
+  }, [])
+
   return (
-    <Card
-      className="p-6 transition-all duration-500 hover:shadow-xl animate-slide-in-up"
-      style={{ animationDelay: "600ms" }}
-    >
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-foreground">Team Collaboration</h2>
-        <Button variant="outline" size="sm" className="transition-all duration-300 hover:scale-105 bg-transparent">
-          <Plus className="w-4 h-4 mr-1" />
-          Add Member
-        </Button>
-      </div>
-      <div className="space-y-4">
-        {members.map((member, index) => (
-          <div
-            key={member.name}
-            className="flex items-center gap-4 p-3 rounded-lg hover:bg-secondary transition-all duration-300 cursor-pointer group"
-            style={{ animationDelay: `${650 + index * 100}ms` }}
-          >
-            <Avatar className="w-12 h-12 ring-2 ring-primary/20 transition-all duration-300 group-hover:ring-primary/40 group-hover:scale-110">
-              <AvatarImage src={member.avatarImage || "/placeholder.svg"} alt={member.name} />
-              <AvatarFallback className="bg-primary text-primary-foreground">{member.avatar}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-foreground text-sm">{member.name}</p>
-              <p className="text-xs text-muted-foreground truncate">
-                Working on <span className="font-medium">{member.task}</span>
-              </p>
-            </div>
-            <span
-              className={`${member.statusColor} text-xs px-3 py-1.5 rounded-full font-medium transition-all duration-300 group-hover:scale-105 whitespace-nowrap`}
-            >
-              {member.status}
-            </span>
+    <div className="space-y-6">
+      <Card className="p-6 transition-all duration-500 shadow-sm border-border/50">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-emerald-600" />
+            <h2 className="text-xl font-bold text-foreground">Active Staff Members</h2>
           </div>
-        ))}
-      </div>
-    </Card>
+          
+          {/* FIX: Removed the 'Add Member' Button from here 
+            because it is now handled by the Header actions in app/team/page.tsx 
+          */}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {staffs.length > 0 ? (
+            staffs.map((staff) => (
+              <div
+                key={staff.email}
+                onClick={() => {
+                  setSelectedStaff({ email: staff.email, name: staff.full_name });
+                  setIsViewOpen(true);
+                }}
+                className="flex flex-col p-4 rounded-xl border border-border/40 bg-card hover:bg-secondary/20 transition-all cursor-pointer group relative overflow-hidden shadow-sm hover:shadow-md"
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <Avatar className="w-12 h-12 ring-2 ring-emerald-500/10 group-hover:scale-105 transition-transform">
+                    <AvatarFallback className="bg-emerald-100 text-emerald-700 font-bold">
+                      {staff.full_name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-foreground text-sm truncate">{staff.full_name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate font-medium uppercase tracking-tighter">
+                      {staff.email}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mt-auto pt-2 border-t border-border/30">
+                  <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-none text-[10px] font-black uppercase tracking-widest">
+                    Active
+                  </Badge>
+                  
+                  {/* Updated to use 'active_tasks' from your backend response */}
+                  <Badge 
+                    variant="outline" 
+                    className="text-[10px] font-bold group-hover:bg-emerald-600 group-hover:text-white transition-colors border-emerald-200/50"
+                  >
+                    <Briefcase className="w-3 h-3 mr-1" />
+                    {staff.active_tasks || 0} In Progress
+                  </Badge>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full py-10 text-center border-2 border-dashed rounded-xl border-muted/30">
+               <p className="text-muted-foreground italic text-sm">No staff members found.</p>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* The Slide-out Task View Component */}
+      <StaffTaskView 
+        open={isViewOpen} 
+        onOpenChange={setIsViewOpen}
+        email={selectedStaff?.email || ""}
+        fullName={selectedStaff?.name || ""}
+      />
+    </div>
   )
 }

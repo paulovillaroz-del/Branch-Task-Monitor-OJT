@@ -208,3 +208,17 @@
 .animate-fade-in {
   animation: fade-in 0.2s ease-out forwards;
 }
+
+/* Force the root containers to never exceed the phone screen width */
+html, body {
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* This prevents any 'flex' child from pushing the screen wide */
+* {
+  min-width: 0;
+}

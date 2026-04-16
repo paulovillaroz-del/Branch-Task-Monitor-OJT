@@ -1,15 +1,17 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Geist } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const geist = Geist({ 
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+})
 
 export const metadata: Metadata = {
-  title: "Donezo - Project Management Dashboard",
+  title: "Branch Task Monitoring",
   description: "Plan, prioritize, and accomplish your tasks with ease",
   generator: "v0.app",
   icons: {
@@ -37,12 +39,18 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`font-sans antialiased`}>
-        <ThemeProvider defaultTheme="light" storageKey="task-monitoring-theme">
+    // suppressHydrationWarning is mandatory on the <html> tag when using next-themes
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geist.variable} font-sans antialiased`}>
+        <ThemeProvider 
+          attribute="class" 
+          defaultTheme="light" 
+          enableSystem={false} 
+          storageKey="task-monitoring-theme"
+        >
           {children}
+          <Analytics />
         </ThemeProvider>
-        <Analytics />
       </body>
     </html>
   )

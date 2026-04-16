@@ -1,87 +1,48 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
-import { useEffect, useState } from "react"
 
-export function ProjectProgress() {
-  const [progress, setProgress] = useState(0)
-  const targetProgress = 41
+interface Task {
+  status: string;
+}
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (progress < targetProgress) {
-        setProgress((prev) => Math.min(prev + 1, targetProgress))
-      }
-    }, 30)
-    return () => clearTimeout(timer)
-  }, [progress, targetProgress])
-
-  const circumference = 2 * Math.PI * 90
-  const strokeDashoffset = circumference - (progress / 100) * circumference
+export function ProjectProgress({ tasks = [] }: { tasks: Task[] }) {
+  const total = tasks.length;
+  const completed = tasks.filter(t => t.status?.toLowerCase() === 'completed').length;
+  
+  // Calculate percentage (avoid division by zero)
+  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <Card
-      className="p-4 transition-all duration-500 hover:shadow-xl animate-slide-in-up overflow-hidden"
-      style={{ animationDelay: "800ms" }}
-    >
-      <h2 className="text-lg font-semibold text-foreground mb-4">Project Progress</h2>
-      <div className="flex flex-col items-center">
-        <div className="relative w-40 h-40 mb-4">
-          <div
-            className="absolute inset-0 rounded-full opacity-20"
-            style={{
-              background:
-                "repeating-linear-gradient(45deg, transparent, transparent 6px, oklch(0.42 0.15 155) 6px, oklch(0.42 0.15 155) 12px)",
-            }}
-          />
-          <svg className="w-full h-full -rotate-90 relative z-10" viewBox="0 0 160 160">
-            <circle
-              cx="80"
-              cy="80"
-              r="70"
-              stroke="currentColor"
-              strokeWidth="12"
+    <Card className="p-6 border-muted/40 shadow-sm">
+      <h3 className="text-sm font-bold mb-6 text-muted-foreground uppercase tracking-wider">Project Progress</h3>
+      <div className="flex flex-col items-center justify-center space-y-4">
+        <div className="relative w-32 h-32">
+          {/* Background Circle */}
+          <svg className="w-full h-full" viewBox="0 0 36 36">
+            <path
+              className="text-secondary stroke-current"
+              strokeWidth="3"
               fill="none"
-              className="text-muted/30"
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
             />
-            <circle
-              cx="80"
-              cy="80"
-              r="70"
-              stroke="currentColor"
-              strokeWidth="12"
-              fill="none"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
+            {/* Progress Circle */}
+            <path
+              className="text-primary stroke-current transition-all duration-1000 ease-out"
+              strokeWidth="3"
+              strokeDasharray={`${percentage}, 100`}
               strokeLinecap="round"
-              className="text-primary transition-all duration-1000 ease-out"
+              fill="none"
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
             />
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-4xl font-bold text-foreground">{progress}%</span>
-            <span className="text-xs text-muted-foreground mt-1">Project Ended</span>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-2xl font-black">{percentage}%</span>
           </div>
         </div>
-        <div className="flex flex-wrap justify-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-primary flex-shrink-0" />
-            <span className="text-muted-foreground whitespace-nowrap">Completed</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-foreground flex-shrink-0" />
-            <span className="text-muted-foreground whitespace-nowrap">In Progress</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div
-              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-              style={{
-                background:
-                  "repeating-linear-gradient(45deg, transparent, transparent 2px, oklch(0.55 0.02 120) 2px, oklch(0.55 0.02 120) 4px)",
-              }}
-            />
-            <span className="text-muted-foreground whitespace-nowrap">Pending</span>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground font-medium">
+          {completed} of {total} tasks finished
+        </p>
       </div>
     </Card>
   )

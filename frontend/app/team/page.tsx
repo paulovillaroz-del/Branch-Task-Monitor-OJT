@@ -1,28 +1,57 @@
-import { Sidebar } from "@/components/dashboard/sidebar"
-import { Header } from "@/components/dashboard/header"
-import { TeamContent } from "@/components/team/team-content"
-import { Button } from "@/components/ui/button"
+'use client';
+
+import { useState } from 'react';
+// 1. Ensure these imports are correct
+import { Sidebar } from "@/components/dashboard/sidebar";
+import { Header } from "@/components/dashboard/header";
+import { TeamCollaboration } from "@/components/dashboard/team-collaboration"; 
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 export default function TeamPage() {
-  return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
+  // 2. Add the state to control the sidebar on mobile
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-      <main className="flex-1 p-4 lg:p-6 lg:ml-64">
+  return (
+    // 3. Wrapper for full-screen layout and mobile stability
+    <div className="relative flex min-h-screen bg-background overflow-x-hidden">
+      
+      {/* 4. The Sidebar with state props */}
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
+
+      {/* 5. Main content area with desktop margin (lg:ml-64) */}
+      <main className="flex-1 w-full min-w-0 lg:ml-64 p-3 md:p-6 lg:p-8 animate-in fade-in duration-500">
         <Header
-          title="Team"
-          description="Manage your team members and their roles."
+          title="Team Management"
+          description="View and manage your branch staff members."
+          
+          // 6. THE HANDSHAKE: This makes the hamburger menu appear on mobile
+          onMenuClick={() => setIsSidebarOpen(true)}
+          
+          // Optional: Add a button to the header actions if you want it there
           actions={
-            <Button className="w-full sm:w-auto h-9 text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 hover:scale-105">
-              + Add Member
+            <Button className="gap-2 bg-primary hover:bg-primary/90 hidden md:flex">
+              <Plus className="w-4 h-4" /> Add Member
             </Button>
           }
         />
 
-        <div className="mt-6">
-          <TeamContent />
+        <div className="mt-8">
+          {/* 7. Your existing team list component */}
+          <TeamCollaboration />
         </div>
       </main>
+
+      {/* 8. Mobile Background Overlay (Dims screen when sidebar is open) */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-[80] lg:hidden animate-in fade-in" 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
     </div>
-  )
+  );
 }
