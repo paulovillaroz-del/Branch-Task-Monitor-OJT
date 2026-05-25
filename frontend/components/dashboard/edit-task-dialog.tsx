@@ -32,7 +32,7 @@ export function EditTaskDialog({ task, open, setOpen, onTaskUpdated }: EditTaskD
 
   useEffect(() => {
     if (open) {
-      fetch("http://localhost:8080/users")
+      fetch("http://localhost:40241/users")
         .then(res => res.json())
         .then(data => {
           setStaffList(Array.isArray(data) ? data : []);
@@ -46,19 +46,22 @@ export function EditTaskDialog({ task, open, setOpen, onTaskUpdated }: EditTaskD
       setTitle(task.title || "")
       setDescription(task.description || "")
       setStatus(task.status || "pending")
-      setStartDate(task.start_date || "")
-      setEndDate(task.end_date || "")
       setAssignedTo(task.assigned_to || "")
+      
+      // FIX 1: Siguraduhing YYYY-MM-DD lang ang kinukuha para pumasok sa date picker
+      const formatSafeDate = (d: string) => d ? d.split('T')[0].split(' ')[0] : "";
+      setStartDate(formatSafeDate(task.start_date))
+      setEndDate(formatSafeDate(task.end_date))
     }
   }, [task, open])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (isSubmitting) return;
+    if (isSubmitting || !task || !task.id) return;
     setIsSubmitting(true)
 
     try {
-      const response = await fetch(`http://localhost:8080/tasks/${task.id}`, {
+      const response = await fetch(`http://localhost:40241/tasks/${task.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -67,7 +70,7 @@ export function EditTaskDialog({ task, open, setOpen, onTaskUpdated }: EditTaskD
           status: status,
           start_date: startDate,
           end_date: endDate,
-          assigned_to: assignedTo,
+          assigned_to: assignedTo.trim().toLowerCase(), // FIX 2: Tiyaking malinis na email string ang sinesend
         }),
       })
 
@@ -79,12 +82,19 @@ export function EditTaskDialog({ task, open, setOpen, onTaskUpdated }: EditTaskD
           window.location.reload();
         }
       } else {
-        const errorData = await response.json();
-        alert("Update failed: " + (errorData.error || "Server error"));
+        // FIX 3: Safe Error Parsing para hindi mag-crash ang UI kung hindi JSON ang ibalik ng server
+        let errorMessage = "Server verification rejected the update request.";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
+        }
+        alert("Update failed: " + errorMessage);
       }
     } catch (error) {
       console.error("Update failed:", error)
-      alert("Cannot connect to server. Ensure Go is running.");
+      alert("Cannot connect to server. Ensure your Go backend is running on port 40241.");
     } finally {
       setIsSubmitting(false)
     }
@@ -93,17 +103,17 @@ export function EditTaskDialog({ task, open, setOpen, onTaskUpdated }: EditTaskD
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent 
-  className="fixed inset-0 z-[100] flex items-center justify-center p-4 w-[95vw] max-w-[425px] bg-background rounded-2xl border shadow-2xl max-h-[92vh] overflow-y-auto !translate-x-0 !translate-y-0 !left-0 !top-0 m-auto outline-none"
->
-  <div className="w-full h-fit max-h-full">
-    <DialogHeader className="mb-4">
-      <DialogTitle className="font-bold text-xl tracking-tight text-foreground">
-        Edit Task Details
-      </DialogTitle>
-      <DialogDescription className="font-medium text-muted-foreground text-sm">
-        Modify the project details or reassign the staff member.
-      </DialogDescription>
-    </DialogHeader>
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 w-[95vw] max-w-[425px] bg-background rounded-2xl border shadow-2xl max-h-[92vh] overflow-y-auto !translate-x-0 !translate-y-0 !left-0 !top-0 m-auto outline-none"
+      >
+        <div className="w-full h-fit max-h-full">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="font-bold text-xl tracking-tight text-foreground">
+              Edit Task Details
+            </DialogTitle>
+            <DialogDescription className="font-medium text-muted-foreground text-sm">
+              Modify the project details or reassign the staff member.
+            </DialogDescription>
+          </DialogHeader>
 
           <form onSubmit={onSubmit} className="grid gap-3 py-2 md:gap-4 md:py-4">
             <div className="grid gap-1.5">
@@ -126,9 +136,17 @@ export function EditTaskDialog({ task, open, setOpen, onTaskUpdated }: EditTaskD
                 required
               >
                 <option value="">Select Staff...</option>
+                
+                {/* FIX 4: Ipakita lagi ang kasalukuyang nakatalaga kahit hindi pa naglo-load ang users list */}
+                {task?.assigned_to && !staffList.find((s) => s.email === task.assigned_to) && (
+                   <option value={task.assigned_to}>
+                     {task.assigned_to.split('@')[0]} (Current)
+                   </option>
+                )}
+
                 {staffList.map((staff) => (
                   <option key={staff.email} value={staff.email}>
-                    {staff.full_name} {staff.email === task.assigned_to ? "(Current)" : ""}
+                    {staff.full_name} {staff.email === task?.assigned_to ? "(Current)" : ""}
                   </option>
                 ))}
               </select>

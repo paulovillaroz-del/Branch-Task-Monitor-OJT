@@ -10,7 +10,7 @@ export function TaskComments({ taskId, currentUserEmail }: { taskId: number, cur
   const [newComment, setNewComment] = useState("")
 
   const fetchComments = async () => {
-    const res = await fetch(`http://localhost:8080/tasks/${taskId}/comments`)
+    const res = await fetch(`http://localhost:40241/tasks/${taskId}/comments`)
     if (res.ok) setComments(await res.json())
   }
 
@@ -18,7 +18,7 @@ export function TaskComments({ taskId, currentUserEmail }: { taskId: number, cur
 
   const sendComment = async () => {
     if (!newComment.trim()) return
-    const res = await fetch(`http://localhost:8080/tasks/${taskId}/comments`, {
+    const res = await fetch(`http://localhost:40241/tasks/${taskId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sender_email: currentUserEmail, message: newComment })

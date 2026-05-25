@@ -10,7 +10,7 @@ export function TeamContent() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:8080/users")
+      fetch("http://localhost:40241/users")
       .then((res) => res.json())
       .then((data) => {
         setMembers(Array.isArray(data) ? data : []);

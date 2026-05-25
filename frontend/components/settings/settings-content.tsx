@@ -31,7 +31,7 @@ export function SettingsContent() {
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      const res = await fetch("http://localhost:8080/user/profile", {
+  const res = await fetch("http://localhost:40241/user/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

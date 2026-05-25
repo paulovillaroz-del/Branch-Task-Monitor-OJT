@@ -62,7 +62,7 @@ export function ProjectList({ tasks = [], isEditable = false, onTaskUpdated }: P
 
   const handleUpdateStatus = async (id: number, status: string, requesting: boolean) => {
     try {
-      const res = await fetch(`http://localhost:8080/tasks/${id}/status`, {
+      const res = await fetch(`http://localhost:40241/tasks/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, is_requesting_approval: requesting }),
@@ -76,21 +76,10 @@ export function ProjectList({ tasks = [], isEditable = false, onTaskUpdated }: P
     }
   };
 
-  const initiateStatusChange = (e: React.MouseEvent, task: Task) => {
-    e.preventDefault();
-    if (task.status.toLowerCase() === 'completed' || task.is_requesting_approval) return; 
-    if (role === "admin") {
-      setCyclingId(task.id);
-    } else {
-      setActiveTaskForRequest(task);
-      setRequestDialogOpen(true);
-    }
-  };
-
   const handleConfirmApprovalRequest = async () => {
     if (!activeTaskForRequest) return;
     try {
-      const res = await fetch(`http://localhost:8080/tasks/${activeTaskForRequest.id}/request-approval`, {
+      const res = await fetch(`http://localhost:40241/tasks/${activeTaskForRequest.id}/request-approval`, {
         method: 'PATCH',
       });
       if (res.ok) refresh();
@@ -100,27 +89,53 @@ export function ProjectList({ tasks = [], isEditable = false, onTaskUpdated }: P
 
   const handleAdminDecision = async (id: number, action: string) => {
     try {
-      const res = await fetch(`http://localhost:8080/tasks/${id}/approve`, {
+      const res = await fetch(`http://localhost:40241/tasks/${id}/approve`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }), 
       });
+      
       if (res.ok) {
         refresh(); 
+        window.location.reload(); // 🔄 Pinupurga ang global cache counters para laging accurate ang dashboard metrics!
       }
     } catch (err) { 
       console.error("Approval error:", err); 
     }
   };
 
+  const initiateStatusChange = (e: React.MouseEvent, task: Task) => {
+    e.preventDefault();
+    
+    const currentStatus = task.status.toLowerCase();
+    if (currentStatus === 'completed' || task.is_requesting_approval) return; 
+
+    if (role === "admin") {
+      if (currentStatus === 'rejected') return;
+      setCyclingId(task.id);
+    } else {
+      // 💡 IMPLEMENTATION NG SITWASYON 1 AT 2 PARA SA PANEL DEFENSE
+      if (currentStatus === 'pending') {
+        // [Sitwasyon 1]: Autonomous transition mula Pending -> In Progress nang walang istorbo kay Admin
+        handleUpdateStatus(task.id, 'in-progress', false);
+      } else if (currentStatus === 'in-progress' || currentStatus === 'rejected') {
+        // [Sitwasyon 2]: Secured gateway transition patungong Completed (Nangangailangan ng request)
+        setActiveTaskForRequest(task);
+        setRequestDialogOpen(true);
+      }
+    }
+  };
+
   const getStatusStyles = (status: string, endDate: string, isRequesting: boolean) => {
     if (isRequesting) return 'bg-amber-500 text-white border-none animate-pulse';
-    const isOverdue = endDate && new Date(endDate) < new Date() && status !== 'completed';
+    
+    const isOverdue = endDate && new Date(endDate) < new Date() && status !== 'completed' && status !== 'rejected';
     if (isOverdue) return 'bg-red-500/10 text-red-500 border-red-500/20';
     
     switch (status?.toLowerCase()) {
       case 'completed': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
       case 'in-progress': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+      case 'rejected': return 'bg-red-500/10 text-red-600 border-red-500/20 font-bold';
       default: return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
     }
   };
@@ -135,7 +150,8 @@ export function ProjectList({ tasks = [], isEditable = false, onTaskUpdated }: P
       ) : (
         filteredTasks.map((task) => {
           const isCompleted = task.status.toLowerCase() === 'completed';
-          const isOverdue = task.end_date && new Date(task.end_date) < new Date() && !isCompleted;
+          const isRejected = task.status.toLowerCase() === 'rejected';
+          const isOverdue = task.end_date && new Date(task.end_date) < new Date() && !isCompleted && !isRejected;
           const isChatOpen = expandedChatId === task.id;
           const isRequesting = !!task.is_requesting_approval;
           const nextStatus = getNextStatus(task.status);
@@ -144,7 +160,6 @@ export function ProjectList({ tasks = [], isEditable = false, onTaskUpdated }: P
           const tMail = (task.assigned_to || "").toLowerCase().trim().replace(/f+/g, 'f');
           const isMine = tMail === sMail;
 
-          // PRIVACY LOGIC: Only Admin or the Assigned Staff can see/open the chat
           const canCommunicate = role === "admin" || isMine;
 
           return (
@@ -173,7 +188,6 @@ export function ProjectList({ tasks = [], isEditable = false, onTaskUpdated }: P
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  {/* COMMUNICATION BUTTON - PROTECTED BY PRIVACY LOGIC */}
                   {canCommunicate && (
                     <Button 
                       variant="ghost" 
@@ -201,7 +215,16 @@ export function ProjectList({ tasks = [], isEditable = false, onTaskUpdated }: P
                       className={`${getStatusStyles(task.status, task.end_date, isRequesting)} capitalize py-1.5 px-3 cursor-pointer`}
                       onClick={(e) => initiateStatusChange(e, task)}
                     >
-                      {isRequesting ? 'Review Needed' : (isCompleted ? '✓ Completed' : (isOverdue ? '⚠️ Overdue' : task.status))}
+                      {isRequesting 
+                        ? 'Review Needed' 
+                        : (isCompleted 
+                            ? '✓ Completed' 
+                            : (isRejected 
+                                ? (role === 'admin' ? '❌ Rejected' : '🔄 Resubmit Work') 
+                                : (isOverdue ? '⚠️ Overdue' : task.status)
+                              )
+                          )
+                      }
                     </Badge>
                   )}
                 </div>
@@ -209,19 +232,35 @@ export function ProjectList({ tasks = [], isEditable = false, onTaskUpdated }: P
 
               {/* ADMIN ACTION PANEL */}
               {role === "admin" && isRequesting && (
-                <div className="bg-amber-50 border-t border-amber-100 p-3 flex items-center justify-between animate-in slide-in-from-top-4">
-                  <div className="flex items-center gap-2 text-amber-700">
-                    <AlertCircle className="w-4 h-4" />
-                    <span className="text-[11px] font-bold uppercase">Staff is requesting approval</span>
+                <div className="mx-4 mb-4 mt-2 bg-amber-50/60 border border-amber-200/80 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center gap-2 text-amber-800">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                    <span className="text-[11px] font-black tracking-wide uppercase">
+                      Staff Approval Required
+                    </span>
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="h-7 text-[10px] border-red-200 text-red-600 hover:bg-red-50" onClick={() => handleAdminDecision(task.id, 'reject')}>REJECT</Button>
-                    <Button size="sm" className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleAdminDecision(task.id, 'approve')}>APPROVE</Button>
+                  
+                  <div className="flex gap-2 justify-end shrink-0">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-7 text-[10px] font-bold border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 bg-white rounded-lg px-3 transition active:scale-95" 
+                      onClick={() => handleAdminDecision(task.id, 'reject')}
+                    >
+                      REJECT
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="h-7 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-3 border-0 transition active:scale-95 shadow-sm shadow-emerald-100" 
+                      onClick={() => handleAdminDecision(task.id, 'approve')}
+                    >
+                      APPROVE
+                    </Button>
                   </div>
                 </div>
               )}
 
-              {/* COMMUNICATION AREA - ONLY ACCESSIBLE IF AUTHORIZED */}
+              {/* COMMUNICATION AREA */}
               {isChatOpen && canCommunicate && (
                 <div className="border-t border-border/40 bg-secondary/5 animate-in slide-in-from-top-2">
                   <TaskComments taskId={task.id} currentUserEmail={userEmail || ""} />

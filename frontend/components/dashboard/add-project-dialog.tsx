@@ -27,7 +27,7 @@ export function AddProjectDialog({ onTaskAdded }: { onTaskAdded?: () => void }) 
 
   useEffect(() => {
     if (open) {
-      fetch("http://localhost:8080/users")
+      fetch("http://localhost:40241/users")
         .then(res => res.json())
         .then(data => setStaffList(Array.isArray(data) ? data : []))
         .catch(err => console.error("Failed to load staff list:", err))
@@ -52,17 +52,19 @@ export function AddProjectDialog({ onTaskAdded }: { onTaskAdded?: () => void }) 
 
     setIsSubmitting(true)
 
+    // FIX: Ginawang ISO format ang date para tanggapin ng Go time.Time
+    // At siniguradong string ang assigned_to kung email ang gamit mo
     const payload = {
       title: title.trim(),
       description: description.trim() || "No description provided",
       status: status,
-      start_date: startDate,
-      end_date: endDate,
+      start_date: startDate ? new Date(startDate).toISOString() : "", 
+      end_date: endDate ? new Date(endDate).toISOString() : "",
       assigned_to: assignedTo.trim(), 
     }
 
     try {
-      const response = await fetch("http://localhost:8080/tasks", {
+      const response = await fetch("http://localhost:40241/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -75,6 +77,7 @@ export function AddProjectDialog({ onTaskAdded }: { onTaskAdded?: () => void }) 
         resetForm();
         if (onTaskAdded) onTaskAdded(); 
       } else {
+        // I-alert ang mismong error galing sa backend para malaman natin ang exact issue
         alert(`Error: ${result.error || "Failed to create task"}`);
       }
     } catch (error) {
@@ -96,15 +99,15 @@ export function AddProjectDialog({ onTaskAdded }: { onTaskAdded?: () => void }) 
       </DialogTrigger>
 
       <DialogContent 
-  className="fixed inset-0 z-[100] flex items-center justify-center p-4 w-[95vw] max-w-[425px] bg-background rounded-2xl border shadow-2xl max-h-[92vh] overflow-y-auto !translate-x-0 !translate-y-0 !left-0 !top-0 m-auto outline-none"
->
-  <div className="w-full h-fit max-h-full">
-    <DialogHeader>
-      <DialogTitle className="text-xl font-bold tracking-tight">Create New Project</DialogTitle>
-      <DialogDescription className="text-sm font-medium text-muted-foreground">
-        Assign tasks directly to registered branch staff.
-      </DialogDescription>
-    </DialogHeader>
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 w-[95vw] max-w-[425px] bg-background rounded-2xl border shadow-2xl max-h-[92vh] overflow-y-auto !translate-x-0 !translate-y-0 !left-0 !top-0 m-auto outline-none"
+      >
+        <div className="w-full h-fit max-h-full">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold tracking-tight">Create New Project</DialogTitle>
+            <DialogDescription className="text-sm font-medium text-muted-foreground">
+              Assign tasks directly to registered branch staff.
+            </DialogDescription>
+          </DialogHeader>
 
           <form onSubmit={onSubmit} className="space-y-4 py-4">
             <div className="space-y-2">

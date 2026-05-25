@@ -12,7 +12,11 @@ import {
   UserCircle,
   ShieldAlert, 
   X,
-  AlertCircle
+  AlertCircle,
+  MessageSquare,
+  Activity,
+  Megaphone,
+  CheckCircle // <-- Para sa Task Status
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
@@ -34,15 +38,16 @@ import {
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/", roles: ["admin", "user"] },
   { icon: CheckSquare, label: "Tasks", href: "/tasks", roles: ["admin", "user"] },
-  { icon: Calendar, label: "Calendar", href: "/calendar", roles: ["admin", "user"] },
+  { icon: Activity, label: "Audit Trail", href: "/calendar", roles: ["admin"] },
   { icon: ShieldAlert, label: "Monitor", href: "/monitor", roles: ["admin"] },
-  { icon: BarChart3, label: "Analytics", href: "/analytics", roles: ["admin"] },
+  { icon: CheckCircle, label: "Task Status", href: "/task-status", roles: ["admin"] }, // <-- BAGONG TASK STATUS
+  { icon: BarChart3, label: "Analytics", href: "/analytics", roles: ["admin"] }, // <-- IBINALIK ANG ANALYTICS
   { icon: Users, label: "Team", href: "/team", roles: ["admin"] },
+  { icon: Megaphone, label: "Announcements", href: "/announcements", roles: ["admin", "user"] },
 ]
 
 const generalItems = [
   { icon: Settings, label: "Settings", href: "/settings" },
-  { icon: HelpCircle, label: "Help", href: "/help" },
 ]
 
 interface SidebarProps {
@@ -54,19 +59,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [role, setRole] = useState<string>("")
   const [userName, setUserName] = useState<string>("")
   const [taskCount, setTaskCount] = useState<number>(0)
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false) // New State
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
 
   useEffect(() => {
-    const currentRole = localStorage.getItem("userRole") || "user";
+    // FIX: Added .toLowerCase() to prevent case-sensitivity issues like "Admin" vs "admin"
+    const currentRole = (localStorage.getItem("userRole") || localStorage.getItem("role") || "user").toLowerCase();
     const currentEmail = localStorage.getItem("email");
     setRole(currentRole);
     setUserName(localStorage.getItem("userName") || "Guest");
 
     const fetchTaskCount = async () => {
       try {
-        let url = `http://localhost:8080/tasks?t=${Date.now()}`;
+        let url = `http://localhost:40241/tasks?t=${Date.now()}`;
         if (currentRole === "user" && currentEmail) {
           url += `&assigned_to=${encodeURIComponent(currentEmail)}`;
         }
@@ -197,7 +203,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div className="pt-4 border-t border-border mt-auto">
             <button
               type="button"
-              onClick={() => setShowLogoutDialog(true)} // Trigger Dialog
+              onClick={() => setShowLogoutDialog(true)}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-500/10 transition-all duration-300 group"
             >
               <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform shrink-0" />

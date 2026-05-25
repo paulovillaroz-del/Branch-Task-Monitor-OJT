@@ -10,7 +10,7 @@ export function Reminders() {
 
   useEffect(() => {
     // Fetch from your Go Backend
-    fetch("http://localhost:8080/tasks/reminders")
+      fetch("http://localhost:40241/tasks/reminders")
       .then(res => res.json())
       .then(data => {
         setReminders(Array.isArray(data) ? data : [])
@@ -63,4 +63,4 @@ export function Reminders() {
       </CardContent>
     </Card>
   )
-}
+} 

@@ -26,7 +26,7 @@ export default function LogoutPage() {
 
     try {
       // 1. Call your GoLang backend (Optional: check if the route exists first)
-      await fetch("http://localhost:8080/logout", {
+      await fetch("http://localhost:40241/logout", {
         method: "POST",
         credentials: "include",
       })
